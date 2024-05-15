@@ -1,1 +1,113 @@
-(function(){const o=document.createElement("link").relList;if(o&&o.supports&&o.supports("modulepreload"))return;for(const t of document.querySelectorAll('link[rel="modulepreload"]'))l(t);new MutationObserver(t=>{for(const e of t)if(e.type==="childList")for(const r of e.addedNodes)r.tagName==="LINK"&&r.rel==="modulepreload"&&l(r)}).observe(document,{childList:!0,subtree:!0});function i(t){const e={};return t.integrity&&(e.integrity=t.integrity),t.referrerPolicy&&(e.referrerPolicy=t.referrerPolicy),t.crossOrigin==="use-credentials"?e.credentials="include":t.crossOrigin==="anonymous"?e.credentials="omit":e.credentials="same-origin",e}function l(t){if(t.ep)return;t.ep=!0;const e=i(t);fetch(t.href,e)}})();const h="modulepreload",p=function(n,o){return new URL(n,o).href},f={},a=function(o,i,l){if(!i||i.length===0)return o();const t=document.getElementsByTagName("link");return Promise.all(i.map(e=>{if(e=p(e,l),e in f)return;f[e]=!0;const r=e.endsWith(".css"),m=r?'[rel="stylesheet"]':"";if(!!l)for(let c=t.length-1;c>=0;c--){const u=t[c];if(u.href===e&&(!r||u.rel==="stylesheet"))return}else if(document.querySelector(`link[href="${e}"]${m}`))return;const s=document.createElement("link");if(s.rel=r?"stylesheet":h,r||(s.as="script",s.crossOrigin=""),s.href=e,document.head.appendChild(s),r)return new Promise((c,u)=>{s.addEventListener("load",c),s.addEventListener("error",()=>u(new Error(`Unable to preload CSS for ${e}`)))})})).then(()=>o()).catch(e=>{const r=new Event("vite:preloadError",{cancelable:!0});if(r.payload=e,window.dispatchEvent(r),!r.defaultPrevented)throw e})};a(()=>import("./needle-asap-21747c6d.js"),["./needle-asap-21747c6d.js","./three.module-6742a2cb.js"],import.meta.url);globalThis["needle:dependencies:ready"]=a(()=>import("./register_types-4ed993c7.js"),[],import.meta.url);const d=new Array;globalThis["needle:codegen_files"]=d;d.push("assets/scene_Loading.glb?v=1715327032877");document.addEventListener("DOMContentLoaded",()=>{const n=document.querySelector("needle-engine");n&&n.getAttribute("src")===null&&(n.setAttribute("hash","1715327032877"),n.setAttribute("src",JSON.stringify(d)))});a(()=>import("./needle-engine-d67b61ba.js"),["./needle-engine-d67b61ba.js","./three.module-6742a2cb.js"],import.meta.url);export{a as _};
+(function() {
+    const relList = document.createElement("link").relList;
+    if (relList && relList.supports && relList.supports("modulepreload")) return;
+
+    // Preload all link elements with rel="modulepreload"
+    for (const link of document.querySelectorAll('link[rel="modulepreload"]')) {
+        loadModulePreload(link);
+    }
+
+    // Observe new link elements added to the DOM and preload if necessary
+    new MutationObserver(mutations => {
+        for (const mutation of mutations) {
+            if (mutation.type === "childList") {
+                for (const node of mutation.addedNodes) {
+                    if (node.tagName === "LINK" && node.rel === "modulepreload") {
+                        loadModulePreload(node);
+                    }
+                }
+            }
+        }
+    }).observe(document, { childList: true, subtree: true });
+
+    function getFetchOptions(link) {
+        const options = {};
+        if (link.integrity) options.integrity = link.integrity;
+        if (link.referrerPolicy) options.referrerPolicy = link.referrerPolicy;
+        if (link.crossOrigin === "use-credentials") {
+            options.credentials = "include";
+        } else if (link.crossOrigin === "anonymous") {
+            options.credentials = "omit";
+        } else {
+            options.credentials = "same-origin";
+        }
+        return options;
+    }
+
+    function loadModulePreload(link) {
+        if (link.ep) return;
+        link.ep = true;
+        const options = getFetchOptions(link);
+        fetch(link.href, options);
+    }
+})();
+
+const MODULE_PRELOAD_REL = "modulepreload";
+const modulePreload = function(path, baseUrl) {
+    return new URL(path, baseUrl).href;
+};
+const loadedModules = {};
+
+const loadModules = function(callback, modules, baseUrl) {
+    if (!modules || modules.length === 0) return callback();
+
+    const links = document.getElementsByTagName("link");
+    return Promise.all(modules.map(module => {
+        const url = modulePreload(module, baseUrl);
+        if (url in loadedModules) return;
+        loadedModules[url] = true;
+
+        const isCSS = url.endsWith(".css");
+        const selector = isCSS ? '[rel="stylesheet"]' : "";
+
+        if (baseUrl) {
+            for (let i = links.length - 1; i >= 0; i--) {
+                const link = links[i];
+                if (link.href === url && (!isCSS || link.rel === "stylesheet")) return;
+            }
+        } else if (document.querySelector(`link[href="${url}"]${selector}`)) {
+            return;
+        }
+
+        const linkElement = document.createElement("link");
+        linkElement.rel = isCSS ? "stylesheet" : MODULE_PRELOAD_REL;
+        if (!isCSS) {
+            linkElement.as = "script";
+            linkElement.crossOrigin = "";
+        }
+        linkElement.href = url;
+        document.head.appendChild(linkElement);
+
+        if (isCSS) {
+            return new Promise((resolve, reject) => {
+                linkElement.addEventListener("load", resolve);
+                linkElement.addEventListener("error", () => reject(new Error(`Unable to preload CSS for ${url}`)));
+            });
+        }
+    })).then(() => callback()).catch(error => {
+        const preloadErrorEvent = new Event("vite:preloadError", { cancelable: true });
+        preloadErrorEvent.payload = error;
+        window.dispatchEvent(preloadErrorEvent);
+        if (!preloadErrorEvent.defaultPrevented) throw error;
+    });
+};
+
+loadModules(() => import("./needle-asap-21747c6d.js"), ["./needle-asap-21747c6d.js", "./three.module-6742a2cb.js"], import.meta.url);
+
+globalThis["needle:dependencies:ready"] = loadModules(() => import("./register_types-4ed993c7.js"), [], import.meta.url);
+
+const codegenFiles = [];
+globalThis["needle:codegen_files"] = codegenFiles;
+codegenFiles.push("assets/scene_Loading.glb?v=1715327032877");
+
+document.addEventListener("DOMContentLoaded", () => {
+    const needleEngine = document.querySelector("needle-engine");
+    if (needleEngine && needleEngine.getAttribute("src") === null) {
+        needleEngine.setAttribute("hash", "1715327032877");
+        needleEngine.setAttribute("src", JSON.stringify(codegenFiles));
+    }
+});
+
+loadModules(() => import("./needle-engine-d67b61ba.js"), ["./needle-engine-d67b61ba.js", "./three.module-6742a2cb.js"], import.meta.url);
+
+export { loadModules as _ };
